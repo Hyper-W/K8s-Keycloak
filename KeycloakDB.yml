@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-db
+  namespace: keycloak
+spec:
+  selector:
+    matchLabels:
+      app: keycloak-db
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: keycloak-db
+    spec:
+      containers:
+        - name: keycloak-db
+          image: mariadb:11
+          envFrom:
+            - secretRef:
+                name: keycloak-db
+          ports:
+            - containerPort: 3306
+              name: keycloak-db
+          volumeMounts:
+            - mountPath: "/var/lib/mysql"
+              name: keycloak-db
+      volumes:
+        - name: keycloak-db
+          persistentVolumeClaim:
+            claimName: keycloak-db
+  volumeClaimTemplates:
+    - metadata:
+        name: keycloak-db
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-db
+  namespace: keycloak
+spec:
+  type: ClusterIP
+  ports:
+    - name: keycloak-db
+      port: 3306
+      targetPort: 3306
+  selector:
+    app: keycloak-db
